@@ -9,18 +9,20 @@ import (
 	"github.com/alexedwards/scs/v2"
 	"github.com/rupakveerla/go-booking/pkg/config"
 	"github.com/rupakveerla/go-booking/pkg/render"
+	"github.com/rupakveerla/go-booking/pkg/handlers"
 )
 
-const portNumber = ":4000"
+const portNumber = ":8080"
 
 var app config.AppConfig
 var session *scs.SessionManager
 
-// main is the main application function
+// main is the main function
 func main() {
-	// change this to true in production
+	// change this to true when in production
 	app.InProduction = false
 
+	// set up the session
 	session = scs.New()
 	session.Lifetime = 24 * time.Hour
 	session.Cookie.Persist = true
@@ -31,15 +33,18 @@ func main() {
 
 	tc, err := render.CreateTemplateCache()
 	if err != nil {
-		log.Fatal("Unable to create template cache!")
+		log.Fatal("cannot create template cache")
 	}
 
 	app.TemplateCache = tc
-	app.UseCache = true
+	app.UseCache = false
+
+	repo := handlers.NewRepo(&app)
+	handlers.NewHandlers(repo)
 
 	render.NewTemplates(&app)
 
-	fmt.Printf("Appplication started on port %v\n", portNumber)
+	fmt.Println(fmt.Sprintf("Staring application on port %s", portNumber))
 
 	srv := &http.Server{
 		Addr:    portNumber,
@@ -47,5 +52,7 @@ func main() {
 	}
 
 	err = srv.ListenAndServe()
-	log.Fatal(err)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
